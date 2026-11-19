@@ -55,6 +55,18 @@ astronômico) e **ilegal**. Use apenas em endereços que são seus ou nos puzzle
 > O arquivo de saída (`-o`) mantém o **formato original** (`Public Addr:` / `Priv (HEX):`) para não
 > quebrar scripts; só o texto mostrado no terminal foi traduzido.
 
+## Velocidade
+
+| Versão | Velocidade | Condição |
+|---|---|---|
+| BitCrack original | 283,9 MKey/s | 719 mil alvos |
+| BitCrack-BR (parâmetros automáticos) | 23–24,5 MKey/s | 719 mil alvos |
+| BitCrack-BR (`-b 90 -t 256 -p 1024`) | ~510 MKey/s | 719 mil alvos |
+| **VanitySearch-Bitcrack-CUDA-BR** | **885,8 MKey/s** | 719 mil alvos |
+
+Medido numa RTX 3060 Laptop. A velocidade do BitCrack original foi lida durante a busca, sem registro
+dos parâmetros `-b`, `-t` e `-p`; os valores variam conforme a GPU, os parâmetros e a temperatura.
+
 ## Uso
 
 ```

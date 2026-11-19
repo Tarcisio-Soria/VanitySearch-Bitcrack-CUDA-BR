@@ -1,4 +1,4 @@
-# VanitySearch-Bitcrack-BR
+# VanitySearch-Bitcrack-CUDA-BR
 
 Versão **BR (PT-BR)** do [VanitySearch-Bitcrack](https://github.com/FixedPaul/VanitySearch-Bitcrack)
 (de **FixedPaul**), ferramenta CUDA de busca de chaves privadas Bitcoin por faixa (estilo puzzle).

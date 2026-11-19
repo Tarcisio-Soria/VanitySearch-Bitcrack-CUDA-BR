@@ -1,5 +1,5 @@
 /*
- * VanitySearch-Bitcrack-BR - painel ao vivo em portugues (PT-BR)
+ * VanitySearch-Bitcrack-CUDA-BR - painel ao vivo em portugues (PT-BR)
  * Layout alinhado ao do BitCrack-BR. Veja PainelBR.h.
  * Licenca: GNU AGPL v3 (ou posterior).
  */
@@ -53,10 +53,10 @@ static bool g_panelDrawn = false;
 // Estado guardado pela fase de preparo.
 static std::string g_gpuName;
 static int g_nTargets = 0;
-static std::string g_ver, g_base, g_source;
+static std::string g_banner, g_source;
 static std::vector<std::string> g_notes;
 
-void setVersion(const std::string &ver, const std::string &base) { g_ver = ver; g_base = base; }
+void setBanner(const std::string &text) { g_banner = text; }
 void setSource(const std::string &file)
 {
 	// so o nome do arquivo, sem diretorios
@@ -279,8 +279,8 @@ void prepDone(double seconds)
 	std::string alvos = std::string("  ") + GREEN + "\xe2\x9c\x94" + RESET + " Alvos: " + thousands((uint64_t)g_nTargets) + " endere\xc3\xa7os";
 	if(!g_source.empty()) { alvos += sepStr() + "de \"" + g_source + "\""; }
 	printf("%s\n", alvos.c_str());
-	if(!g_ver.empty()) {
-		printf("%s  VanitySearch-Bitcrack-BR \xc2\xb7 %s \xc2\xb7 base v%s%s\n", DIM, g_ver.c_str(), g_base.c_str(), RESET);
+	if(!g_banner.empty()) {
+		printf("%s  %s%s\n", DIM, g_banner.c_str(), RESET);
 	}
 	fflush(stdout);
 }
@@ -307,7 +307,8 @@ void render(const Status &s)
 		prog = std::string("  Progresso: [") + GREEN + bar + RESET + "] " + BOLD + fmt1("%.2f", pct) + "%" + RESET
 		     + "   " + DIM + "ETA " + eta + RESET;
 	} else {
-		prog = std::string("  ") + YELLOW + "\xe2\x9a\xa0 INTERVALO DESCONHECIDO" + RESET;
+		prog = std::string("  ") + YELLOW + "\xe2\x9a\xa0 KEYSPACE ILIMITADO" + RESET
+		     + DIM + " \xe2\x80\x94 sem fim definido \xc2\xb7 sem barra \xc2\xb7 ETA indispon\xc3\xad" "vel" + RESET;
 	}
 
 	std::string speed;
@@ -373,10 +374,14 @@ void found(const std::string &address, const std::string &privHex64, const std::
 	fflush(stdout);
 }
 
+static bool g_windowMode = false;
+void setWindowMode(bool on) { g_windowMode = on; }
+
 void finished(double avgSpeedMKs, int nFound)
 {
-	printf("\n%s%sINTERVALO CONCLU\xc3\x8d" "DO%s \xe2\x80\x94 velocidade m\xc3\xa9" "dia: %s%.2f MKey/s%s \xc2\xb7 encontradas: %d\n",
-		BOLD, GREEN, RESET, BOLD, avgSpeedMKs, RESET, nFound);
+	printf("\n%s%s%s%s", BOLD, GREEN, g_windowMode ? "JANELA CONCLU\xc3\x8d" "DA" : "INTERVALO CONCLU\xc3\x8d" "DO", RESET);
+	printf("%s \xe2\x80\x94 velocidade m\xc3\xa9" "dia: %s%.2f MKey/s%s \xc2\xb7 encontradas: %d\n",
+		RESET, BOLD, avgSpeedMKs, RESET, nFound);
 	fflush(stdout);
 	g_panelDrawn = false;
 }

@@ -105,7 +105,7 @@ void monitorKeypress() {
 
 
 #define RELEASE "2.2 by FixedPaul"
-#define RELEASE_BR "BR 1.0 (Tarcisio Soria / KKND)"
+#define BANNER_BR "VanitySearch-Bitcrack-CUDA-BR \xc2\xb7 by Tarcisio Soria a.k.a KKND"
 
 using namespace std;
 
@@ -113,7 +113,7 @@ using namespace std;
 
 void printUsage() {
 
-	printf("VanitySearch-Bitcrack-BR - busca de chaves privadas Bitcoin em GPU (CUDA)\n");
+	printf("VanitySearch-Bitcrack-CUDA-BR - busca de chaves privadas Bitcoin em GPU (CUDA)\n");
 	printf("Uso: vanitysearch [-v] [-gpuId N] [-i ARQUIVO] [-o ARQUIVO] [-start HEX] [-range BITS] [-m N] [-stop] [-random] [-backup] [ALVO]\n \n");
 	printf(" -v: mostra a versao\n");
 	printf(" -i ARQUIVO: le a lista de enderecos/prefixos do ARQUIVO\n");
@@ -640,7 +640,7 @@ int main(int argc, char* argv[]) {
 
 	}
 
-	PainelBR::setVersion(RELEASE_BR, RELEASE);
+	PainelBR::setBanner(BANNER_BR);
 
 	if (gridSize.size() == 0) {
 		for (int i = 0; i < gpuId.size(); i++) {

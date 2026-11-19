@@ -1,5 +1,5 @@
 /*
- * VanitySearch-Bitcrack-BR - painel ao vivo em portugues (PT-BR)
+ * VanitySearch-Bitcrack-CUDA-BR - painel ao vivo em portugues (PT-BR)
  *
  * Modulo de apresentacao independente do motor de busca: nao conhece Int,
  * Point nem GPUEngine, so recebe numeros ja calculados. Visual e telemetria
@@ -36,7 +36,7 @@ namespace PainelBR {
 	void shutdown();
 
 	// Informacoes que entram no painel de preparo (em vez de linhas soltas).
-	void setVersion(const std::string &ver, const std::string &base);
+	void setBanner(const std::string &text);      // linha de identificacao do programa
 	void setSource(const std::string &file);      // arquivo de alvos (-i)
 	void addNote(const std::string &text);        // aviso amarelo (mostrado uma vez)
 
@@ -57,6 +57,7 @@ namespace PainelBR {
 
 	// Fase de busca.
 	void render(const Status &s);
+	void setWindowMode(bool on);   // true: "JANELA CONCLUIDA" em vez de "INTERVALO CONCLUIDO"
 	void finished(double avgSpeedMKs, int nFound);
 
 	// Bloco de "chave encontrada" no mesmo estilo do BitCrack-BR.

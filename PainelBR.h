@@ -51,13 +51,16 @@ namespace PainelBR {
 	// Fase de preparo.
 	void printHeader(const std::string &device, int nbThread, int stepSize,
 	                 int rangeBits, const std::string &startHex, const std::string &endHex,
-	                 int nTargets, bool randomMode);
+	                 int nTargets, int nIgnored, bool randomMode);
 	void prepProgress(double pct);
 	void prepDone(double seconds);
 
+	// Item da lista de alvos ignorado: mostra so os 5 primeiros motivos (listas grandes
+	// nao inundam a tela); o total aparece no painel de preparo.
+	void warnIgnored(const std::string &address, const std::string &reason);
+
 	// Fase de busca.
 	void render(const Status &s);
-	void setWindowMode(bool on);   // true: "JANELA CONCLUIDA" em vez de "INTERVALO CONCLUIDO"
 	void finished(double avgSpeedMKs, int nFound);
 
 	// Bloco de "chave encontrada" no mesmo estilo do BitCrack-BR.

@@ -53,6 +53,7 @@ static bool g_panelDrawn = false;
 // Estado guardado pela fase de preparo.
 static std::string g_gpuName;
 static int g_nTargets = 0;
+static int g_nIgnored = 0;
 static std::string g_banner, g_source;
 static std::vector<std::string> g_notes;
 
@@ -226,13 +227,28 @@ static std::string title(const std::string &t)
 	     + " " + DIM + RULE_THICK + RESET;
 }
 
+void warnIgnored(const std::string &address, const std::string &reason)
+{
+	static int shown = 0;
+	const int MAX_SHOWN = 5;
+	if(shown < MAX_SHOWN) {
+		std::string a = address.size() > 44 ? address.substr(0, 41) + "..." : address;
+		printf("  %s\xe2\x9a\xa0 Ignorando endere\xc3\xa7o \"%s\" (%s)%s\n", YELLOW, a.c_str(), reason.c_str(), RESET);
+		shown++;
+		if(shown == MAX_SHOWN) {
+			printf("  %s\xe2\x9a\xa0 (demais itens ignorados n\xc3\xa3o ser\xc3\xa3o listados)%s\n", YELLOW, RESET);
+		}
+	}
+}
+
 void printHeader(const std::string &device, int nbThread, int stepSize,
                  int rangeBits, const std::string &startHex, const std::string &endHex,
-                 int nTargets, bool randomMode)
+                 int nTargets, int nIgnored, bool randomMode)
 {
 	std::string pipe = pipeStr(), sep = sepStr();
 	g_gpuName = cleanName(device);
 	g_nTargets = nTargets;
+	g_nIgnored = nIgnored;
 
 	uint64_t parallel = (uint64_t)nbThread * (uint64_t)stepSize;
 
@@ -278,6 +294,9 @@ void prepDone(double seconds)
 	printf("  %s\xe2\x9c\x94%s Pontos iniciais gerados em %.2f s\n", GREEN, RESET, seconds);
 	std::string alvos = std::string("  ") + GREEN + "\xe2\x9c\x94" + RESET + " Alvos: " + thousands((uint64_t)g_nTargets) + " endere\xc3\xa7os";
 	if(!g_source.empty()) { alvos += sepStr() + "de \"" + g_source + "\""; }
+	if(g_nIgnored > 0) {
+		alvos += sepStr() + YELLOW + thousands((uint64_t)g_nIgnored) + (g_nIgnored == 1 ? " ignorado" : " ignorados") + RESET;
+	}
 	printf("%s\n", alvos.c_str());
 	if(!g_banner.empty()) {
 		printf("%s  %s%s\n", DIM, g_banner.c_str(), RESET);
@@ -374,14 +393,10 @@ void found(const std::string &address, const std::string &privHex64, const std::
 	fflush(stdout);
 }
 
-static bool g_windowMode = false;
-void setWindowMode(bool on) { g_windowMode = on; }
-
 void finished(double avgSpeedMKs, int nFound)
 {
-	printf("\n%s%s%s%s", BOLD, GREEN, g_windowMode ? "JANELA CONCLU\xc3\x8d" "DA" : "INTERVALO CONCLU\xc3\x8d" "DO", RESET);
-	printf("%s \xe2\x80\x94 velocidade m\xc3\xa9" "dia: %s%.2f MKey/s%s \xc2\xb7 encontradas: %d\n",
-		RESET, BOLD, avgSpeedMKs, RESET, nFound);
+	printf("\n%s%sINTERVALO CONCLU\xc3\x8d" "DO%s \xe2\x80\x94 velocidade m\xc3\xa9" "dia: %s%.2f MKey/s%s \xc2\xb7 encontradas: %d\n",
+		BOLD, GREEN, RESET, BOLD, avgSpeedMKs, RESET, nFound);
 	fflush(stdout);
 	g_panelDrawn = false;
 }

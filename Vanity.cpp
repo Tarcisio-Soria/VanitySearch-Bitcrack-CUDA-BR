@@ -193,6 +193,14 @@ bool VanitySearch::isSingularAddress(std::string pref) {
 	return only1;
 }
 
+// Valida um item da lista de alvos. Uma lista pode misturar itens diferentes:
+//  - enderecos COMPLETOS (ex.: 1BgGZ9tc...SAMH, 34 caracteres): validados por tamanho
+//    e checksum; um endereco digitado errado e ignorado com aviso, nao procurado;
+//  - PREFIXOS mais curtos (ex.: 1BgGZ9): casam com qualquer endereco que comece assim;
+//  - tipos diferentes (1..., 3..., bc1q...): a busca usa UM tipo por vez, o do primeiro
+//    item valido; os de outro tipo sao ignorados.
+// Itens ignorados nao viram alvos: o painel mostra so os validos e quantos foram
+// ignorados. Os 5 primeiros motivos sao exibidos (veja PainelBR::warnIgnored).
 bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 
 	std::vector<unsigned char> result;
@@ -201,7 +209,7 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 	bool wrong = false;
 
 	if (address.length() < 2) {
-		fprintf(stdout, "Ignorando endereco \"%s\" (muito curto)\n", address.c_str());
+		PainelBR::warnIgnored(address, "muito curto");
 		return false;
 	}
 
@@ -223,13 +231,13 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 	}
 
 	if (aType == -1) {
-		fprintf(stdout, "Ignorando endereco \"%s\" (deve comecar com 1, 3 ou bc1q)\n", address.c_str());
+		PainelBR::warnIgnored(address, "deve comecar com 1, 3 ou bc1q");
 		return false;
 	}
 
 	if (searchType == -1) searchType = aType;
 	if (aType != searchType) {
-		fprintf(stdout, "Ignorando endereco \"%s\" (nao misture P2PKH, P2SH e BECH32)\n", address.c_str());
+		PainelBR::warnIgnored(address, "nao misture P2PKH, P2SH e BECH32 na mesma lista");
 		return false;
 	}
 
@@ -257,12 +265,12 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 		}
 
 		if (address.length() < 5) {
-			fprintf(stdout, "Ignorando endereco \"%s\" (too short, length<5 )\n", address.c_str());
+			PainelBR::warnIgnored(address, "muito curto (menos de 5 caracteres)");
 			return false;
 		}
 
 		if (address.length() >= 36) {
-			fprintf(stdout, "Ignorando endereco \"%s\" (too long, length>36 )\n", address.c_str());
+			PainelBR::warnIgnored(address, "muito longo (36 caracteres ou mais)");
 			return false;
 		}
 
@@ -270,7 +278,7 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 		memset(data, 0, 64);
 		size_t data_length;
 		if (!bech32_decode_nocheck(data, &data_length, address.c_str() + 4)) {
-			fprintf(stdout, "Ignorando endereco \"%s\" (Only \"023456789acdefghjklmnpqrstuvwxyz\" allowed)\n", address.c_str());
+			PainelBR::warnIgnored(address, "bech32 so aceita os caracteres 023456789acdefghjklmnpqrstuvwxyz");
 			return false;
 		}
 		
@@ -288,13 +296,31 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 		wrong = !DecodeBase58(address, result);
 
 		if (wrong) {
-			fprintf(stdout, "Ignorando endereco \"%s\" (0, I, O and l not allowed)\n", address.c_str());
+			PainelBR::warnIgnored(address, "base58 nao aceita os caracteres 0, I, O e l");
 			return false;
 		}
 
-		// Try to attack a full address ?
+		// Endereco completo (mais de 21 bytes): confere tamanho, versao e checksum.
+		// Sem isso, um endereco digitado errado (caractere a mais, a menos ou trocado)
+		// seria aceito em silencio e nunca seria encontrado.
 		if (result.size() > 21) {
-			
+
+			if (result.size() != 25) {
+				PainelBR::warnIgnored(address, "tamanho invalido: um endereco completo tem 25 bytes (caractere a mais ou a menos?)");
+				return false;
+			}
+			uint8_t sum1[32], sum2[32];
+			sha256(result.data(), 21, sum1);
+			sha256(sum1, 32, sum2);
+			if (memcmp(sum2, result.data() + 21, 4) != 0) {
+				PainelBR::warnIgnored(address, "checksum invalido (endereco digitado errado?)");
+				return false;
+			}
+			if (result.data()[0] != (aType == P2PKH ? 0 : 5)) {
+				PainelBR::warnIgnored(address, "tipo do endereco nao confere com o prefixo");
+				return false;
+			}
+
 			it->isFull = true;
 			memcpy(it->hash160, result.data() + 1, 20);
 			it->sAddress = *(address_t*)(it->hash160);
@@ -308,7 +334,7 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 		if (isSingularAddress(address)) {
 
 			if (address.length() > 21) {
-				fprintf(stdout, "Ignorando endereco \"%s\" (Too much 1)\n", address.c_str());
+				PainelBR::warnIgnored(address, "'1' demais no prefixo");
 				return false;
 			}
 			
@@ -331,13 +357,13 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 
 		if (searchType == P2SH) {
 			if (result.data()[0] != 5) {
-				fprintf(stdout, "Ignorando endereco \"%s\" (Unreachable, 31h1 to 3R2c only)\n", address.c_str());
+				PainelBR::warnIgnored(address, "inalcancavel (P2SH so vai de 31h1 a 3R2c)");
 				return false;
 			}
 		}
 
 		if (result.size() != 25) {
-			fprintf(stdout, "Ignorando endereco \"%s\" (tamanho invalido)\n", address.c_str());
+			PainelBR::warnIgnored(address, "tamanho invalido");
 			return false;
 		}
 
@@ -914,7 +940,6 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 	RandomJump_K.SetInt32(STEP_SIZE);
 	RandomJump_K_last.SetInt32(0);
 	RandomJump_K_tot.SetInt32(0);
-	bool kneg = false;
 
 	PainelBR::init(ph->gpuId);
 	{
@@ -927,7 +952,7 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 		while (eHex.size() < 64) eHex = "0" + eHex;
 		PainelBR::printHeader(g.deviceName, numThreadsGPU, STEP_SIZE,
 			rangeSz.GetBitLength(), sHex, eHex,
-			(int)inputAddresses.size(), randomMode);
+			(int)nbAddress, (int)inputAddresses.size() - (int)nbAddress, randomMode);
 	}
 
 	counters[thId] = 0;
@@ -1116,7 +1141,7 @@ void VanitySearch::PrintStats(uint64_t keys_n, uint64_t keys_n_prev, double ttot
 	st.taskSize = (taskSize.GetBitLength() > 62) ? 0.0 : taskSize.ToDouble();
 	st.runSec = ttot;
 	st.nFound = nbFoundKey;
-	st.nTargets = (int)inputAddresses.size();
+	st.nTargets = (int)nbAddress;   // so alvos validos
 	st.paused = Paused;
 	st.randomMode = randomMode;
 

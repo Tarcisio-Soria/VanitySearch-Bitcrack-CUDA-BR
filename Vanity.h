@@ -153,6 +153,7 @@ private:
 	void saveProgress(TH_PARAM* p, Int& lastSaveKey, BITCRACK_PARAM* bc);
 
 	Int firstGPUThreadLastPrivateKey;
+	Int panelCurKey;
 
 	Int beta;
 	Int lambda;

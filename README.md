@@ -1,82 +1,100 @@
-# VanitySearch-Bitrack with Optimization for BTC Puzzle 
+# VanitySearch-Bitcrack-BR
 
-# Feature
+Versão **BR (PT-BR)** do [VanitySearch-Bitcrack](https://github.com/FixedPaul/VanitySearch-Bitcrack)
+(de **FixedPaul**), ferramenta CUDA de busca de chaves privadas Bitcoin por faixa (estilo puzzle).
+Fork **educacional**, com o mesmo painel ao vivo, telemetria e idioma do
+[BitCrack-BR](https://github.com/Tarcisio-Soria/BitCrack-BR).
 
-<ul>
-  <li>Optimized CUDA modular math for better performance (6900 MKeys/s on 4090, 8800 MKeys/s on 5090).</li>
-  <li>Less RAM usage.</li>
-  <li>Starting key setting function optimized with Ecc addition and batch modular inverse.</li>
-  <li>Easier definition of the range to scan by defining it as a power of 2.</li>
-  <li>Only 1 GPU allowed for better efficiency.</li>
-  <li>Only compressed addresses and prefixes.</li>
-  <li>Pressing "p" it is possibile to pause vanitysearch freeing the GPU, press again "p" to resume.</li>
-  <li>Added prefix search. Be careful to -m parameter.</li>
-  <li>NEW: Added Random mode. Each GPU thread scans 1024 consecutive random keys at each step.</li>
-  <li>NEW: Added backup mode. Approximately every 60 seconds, an automatic backup file is created for each GPU, containing information about the progress made in the last sequential search.
-This makes it possible, by using the "-backup" option, to resume the sequential search while keeping the progress from the last session.
-This is useful in case the program closes for any reason.</li>
+O README original do projeto-base foi preservado em [`README.upstream.md`](README.upstream.md).
 
-</ul>
+---
 
-# Usage
+## ⚠️ Aviso
 
+Projeto de uso **educacional e de pesquisa**. A finalidade é estudar o custo de busca por força
+bruta e resolver os **puzzles públicos** do Bitcoin (endereços criados de propósito para serem
+encontrados). Varrer chaves de carteiras de terceiros é **inviável** (o espaço de 256 bits é
+astronômico) e **ilegal**. Use apenas em endereços que são seus ou nos puzzles públicos.
 
-VanitySeacrh [-v] [-gpuId] [-i inputfile] [-o outputfile] [-start HEX] [-range] [-m] [-stop]
+## Novidades da versão BR
 
- -v: Print version
- 
- -i inputfile: Get list of addresses/prefixes to search from specified file
- 
- -o outputfile: Output results to the specified file
- 
- -gpuId: GPU to use, default is 0
- 
- -start start Private Key HEX
- 
- -range bit range dimension. start -> (start + 2^range)
+- 🖥️ **Painel ao vivo em duas fases** (redesenhado no mesmo lugar):
+  - **Preparo** — GPU, VRAM, temperatura/clock/fan, configuração (threads × grupo), alvos,
+    intervalo em bits, início/fim e **barra de progresso** na geração das chaves iniciais.
+  - **Busca em andamento** — MKey/s, chaves varridas, barra de progresso + ETA, chave atual
+    completa (64 hex), posição no espaço total (0 → 2²⁵⁶), chaves encontradas.
+- 🌡️ **Telemetria NVML** (NVIDIA): temperatura colorida conforme o limite de *throttle* lido da
+  própria GPU, clock e fan. VRAM usada/total também via NVML.
+- 🇧🇷 **Mensagens e `--help` em português.**
+- 🎯 **Multi-arquitetura**: SASS nativo para **sm_52, 61, 75, 80, 86, 89, 90 e 120**
+  (Maxwell → Blackwell/RTX 50xx; `sm_120` exige CUDA ≥ 12.8).
+- 🔧 Correções: velocidade não inicializada e divisão por zero no cálculo de progresso;
+  build em compiladores recentes (gcc ≥ 14, `-include cstdint`).
+- Mantido do projeto-base: pausa/retomada com **`p`** (libera a GPU), **`-backup`**, **`-random`**,
+  `-range` em potência de 2.
 
- -m: Max number of prefixes found by each kernel call, default is 262144 (use multiples of 65536)
+> O arquivo de saída (`-o`) mantém o **formato original** (`Public Addr:` / `Priv (HEX):`) para não
+> quebrar scripts; só o texto mostrado no terminal foi traduzido.
 
- -stop: Stop when all prefixes are found
+## Uso
 
- -random: Random mode active. Each GPU thread scan 1024 random sequentally keys at each step. Not active by default
+```
+vanitysearch [-v] [-gpuId N] [-i ARQUIVO] [-o ARQUIVO] [-start HEX] [-range BITS]
+             [-m N] [-stop] [-random] [-backup] [ALVO]
+```
 
- -backup: Backup mode allows resuming from the progress percentage of the last sequential search. It does not work with random mode.
+| Opção | Descrição |
+|---|---|
+| `-start HEX` | chave privada inicial (hex) |
+| `-range BITS` | varre de `start` até `start + 2^BITS` |
+| `-i ARQUIVO` / `-o ARQUIVO` | lê alvos / grava resultados |
+| `-gpuId N` | GPU a usar (apenas uma por execução) |
+| `-random` | modo aleatório |
+| `-backup` | retoma o progresso da última busca sequencial |
+| `p` (durante a busca) | pausa/retoma e libera a GPU |
 
+Apenas endereços/prefixos **comprimidos** e **uma GPU** por execução (limitações do projeto-base).
 
-If you want to search for multiple addresses or prefixes, insert them into the input file.
+Exemplo (varre 2²⁸ chaves a partir de 1):
 
-Be careful, if you are looking for multiple prefixes, it may be necessary to increase MaxFound using "-m". Use multiples of 65536. The speed might decrease slightly.
+```
+./vanitysearch -start 1 -range 28 ENDERECO
+```
 
-In Random mode each thread selects a random number within its subrange and scans 512 keys forward and 512 keys backward. Random mode has no memory; the higher the percentage of the range that is scanned, the greater the probability that already scanned keys will be scanned again.
+## Build (Linux)
 
-----------------------------------------------------------------------------
+```
+make                       # build padrão (com NVML), compilador host g++-9
+make CCBIN=g++-14          # escolhe o compilador host (necessário em distros recentes)
+make NVML=0                # sem telemetria NVML (não exige libnvidia-ml)
+make clean
+```
 
-Donations are always welcome! :) bc1qag46ashuyatndd05s0aqeq9d6495c29fjezj09
+- **CUDA Toolkit ≥ 12.8** para incluir `sm_120`. Para build mais rápido, deixe só a sua
+  arquitetura em `GENCODE` no [`Makefile`](Makefile) (ex.: RTX 3060 = `sm_86`).
+- Com NVML, o link usa os *stubs* de `$(CUDA)/lib64/stubs`; em execução a biblioteca vem do
+  driver (`libnvidia-ml.so`). No WSL ela fica em `/usr/lib/wsl/lib`.
+- Em distros muito recentes, veja as notas de glibc/gcc no README do
+  [BitCrack-BR](https://github.com/Tarcisio-Soria/BitCrack-BR).
 
-# Exemples:
+## Estrutura do que foi adicionado
 
-Windows:
+| Arquivo | Papel |
+|---|---|
+| [`PainelBR.h`](PainelBR.h) / [`PainelBR.cpp`](PainelBR.cpp) | painel, barras, formatação e NVML — módulo independente do motor de busca |
+| `Vanity.cpp` (`FindKeyGPU`, `PrintStats`, `getGPUStartingKeys`) | pontos de integração do painel |
+| `main.cpp`, `Makefile` | ajuda em PT-BR, versão BR, multi-arch, NVML |
 
+## Créditos
 
-```./VanitySearch.exe -gpuId 0 -i input.txt -o output.txt -start 3BA89530000000000 -range 40```
+- **[Jean-Luc Pons](https://github.com/JeanLucPons/VanitySearch)** — autor do VanitySearch original.
+- **[FixedPaul](https://github.com/FixedPaul/VanitySearch-Bitcrack)** — adaptação estilo BitCrack e
+  otimizações CUDA (base deste fork).
+- **Tarcisio Soria (KKND)** — adaptação BR: painel, telemetria, tradução e multi-arquitetura.
 
-```./VanitySearch.exe -gpuId 1 -o output.txt -start 3BA89530000000000 -range 42 1MVDYgVaSN6iKKEsbzRUAYFrYJadLYZvvZ```
+## Licença
 
-```./VanitySearch.exe -gpuId 0 -start 3BA89530000000000 -range 41 1MVDYgVaSN6iKKEsbzRUAYFrYJadLYZvvZ ```
-
-```./VanitySearch.exe -gpuId 0 -start 100000000000000000 -range 68 -random 19vkiEajfhuZ8bs8Zu2jgmC6oqZbWqhxhG```
-
-```./VanitySearch.exe -gpuId 0 -start 3BA89530000000000 -range 41 -backup 1MVDYgVaSN6iKKEsbzRUAYFrYJadLYZvvZ ```
-
-Linux
-
-```./vanitysearch -gpuId 0 -i input.txt -o output.txt -start 3BA89530000000000 -range 40```
-
-
-# License
-
-VanitySearch is licensed under GPLv3.
-
-
-
+**GNU Affero General Public License v3.0** (ou posterior) — veja [`LICENSE.txt`](LICENSE.txt).
+Diferente do [BitCrack-BR](https://github.com/Tarcisio-Soria/BitCrack-BR) (MIT), este fork é
+**copyleft** porque deriva de código AGPL; quem distribuir ou oferecer o programa em rede deve
+disponibilizar o código-fonte, incluindo as modificações.

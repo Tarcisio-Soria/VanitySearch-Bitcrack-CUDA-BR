@@ -16,6 +16,7 @@
 */
 
 #include "Vanity.h"
+#include "PainelBR.h"
 #include "Base58.h"
 #include "Bech32.h"
 #include "hash/sha256.h"
@@ -68,7 +69,7 @@ VanitySearch::VanitySearch(Secp256K1* secp, vector<std::string>& inputAddresses,
 	// Insert addresses
 	bool loadingProgress = (inputAddresses.size() > 1000);
 	if (loadingProgress)
-		fprintf(stdout, "[Building lookup16   0.0%%]\r");
+		fprintf(stdout, "[Montando tabela16   0.0%%]\r");
 
 	nbAddress = 0;
 	onlyFull = true;
@@ -104,7 +105,7 @@ VanitySearch::VanitySearch(Secp256K1* secp, vector<std::string>& inputAddresses,
 		}
 
 		if (loadingProgress && i % 1000 == 0)
-			fprintf(stdout, "[Building lookup16 %5.1f%%]\r", (((double)i) / (double)(inputAddresses.size() - 1)) * 100.0);
+			fprintf(stdout, "[Montando tabela16 %5.1f%%]\r", (((double)i) / (double)(inputAddresses.size() - 1)) * 100.0);
 	}
 
 	if (loadingProgress)
@@ -145,7 +146,7 @@ VanitySearch::VanitySearch(Secp256K1* secp, vector<std::string>& inputAddresses,
 		}
 
 		if (loadingProgress)
-			fprintf(stdout, "[Building lookup32 %.1f%%]\r", ((double)i * 100.0) / (double)addresses.size());
+			fprintf(stdout, "[Montando tabela32 %.1f%%]\r", ((double)i * 100.0) / (double)addresses.size());
 	}
 
 	if (loadingProgress)
@@ -156,12 +157,12 @@ VanitySearch::VanitySearch(Secp256K1* secp, vector<std::string>& inputAddresses,
 	{	
 		for (size_t i = 0; i < nbAddress; i++)
 		{
-			fprintf(stdout, "Search: %s [%s]\n", inputAddresses[i].c_str(), searchInfo.c_str());
+			fprintf(stdout, "Alvo: %s [%s]\n", inputAddresses[i].c_str(), searchInfo.c_str());
 		}
 	}
 	else 
 	{		
-		fprintf(stdout, "Search: %d (Lookup size %d,[%d,%d]) [%s]\n", nbAddress, unique_sAddress, minI, maxI, searchInfo.c_str());
+		fprintf(stdout, "Alvos: %d (tabela %d,[%d,%d]) [%s]\n", nbAddress, unique_sAddress, minI, maxI, searchInfo.c_str());
 	}
 
 	//// Compute Generator table G[n] = (n+1)*G
@@ -191,7 +192,7 @@ VanitySearch::VanitySearch(Secp256K1* secp, vector<std::string>& inputAddresses,
 	char* ctimeBuff;
 	time_t now = time(NULL);
 	ctimeBuff = ctime(&now);
-	fprintf(stdout, "Current task START time: %s", ctimeBuff);
+	fprintf(stdout, "Tarefa iniciada em: %s", ctimeBuff);
 	fflush(stdout);
 }
 
@@ -215,7 +216,7 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 	bool wrong = false;
 
 	if (address.length() < 2) {
-		fprintf(stdout, "Ignoring address \"%s\" (too short)\n", address.c_str());
+		fprintf(stdout, "Ignorando endereco \"%s\" (muito curto)\n", address.c_str());
 		return false;
 	}
 
@@ -237,13 +238,13 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 	}
 
 	if (aType == -1) {
-		fprintf(stdout, "Ignoring address \"%s\" (must start with 1 or 3 or bc1q)\n", address.c_str());
+		fprintf(stdout, "Ignorando endereco \"%s\" (deve comecar com 1, 3 ou bc1q)\n", address.c_str());
 		return false;
 	}
 
 	if (searchType == -1) searchType = aType;
 	if (aType != searchType) {
-		fprintf(stdout, "Ignoring address \"%s\" (P2PKH, P2SH or BECH32 allowed at once)\n", address.c_str());
+		fprintf(stdout, "Ignorando endereco \"%s\" (nao misture P2PKH, P2SH e BECH32)\n", address.c_str());
 		return false;
 	}
 
@@ -271,12 +272,12 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 		}
 
 		if (address.length() < 5) {
-			fprintf(stdout, "Ignoring address \"%s\" (too short, length<5 )\n", address.c_str());
+			fprintf(stdout, "Ignorando endereco \"%s\" (too short, length<5 )\n", address.c_str());
 			return false;
 		}
 
 		if (address.length() >= 36) {
-			fprintf(stdout, "Ignoring address \"%s\" (too long, length>36 )\n", address.c_str());
+			fprintf(stdout, "Ignorando endereco \"%s\" (too long, length>36 )\n", address.c_str());
 			return false;
 		}
 
@@ -284,7 +285,7 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 		memset(data, 0, 64);
 		size_t data_length;
 		if (!bech32_decode_nocheck(data, &data_length, address.c_str() + 4)) {
-			fprintf(stdout, "Ignoring address \"%s\" (Only \"023456789acdefghjklmnpqrstuvwxyz\" allowed)\n", address.c_str());
+			fprintf(stdout, "Ignorando endereco \"%s\" (Only \"023456789acdefghjklmnpqrstuvwxyz\" allowed)\n", address.c_str());
 			return false;
 		}
 		
@@ -302,7 +303,7 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 		wrong = !DecodeBase58(address, result);
 
 		if (wrong) {
-			fprintf(stdout, "Ignoring address \"%s\" (0, I, O and l not allowed)\n", address.c_str());
+			fprintf(stdout, "Ignorando endereco \"%s\" (0, I, O and l not allowed)\n", address.c_str());
 			return false;
 		}
 
@@ -322,7 +323,7 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 		if (isSingularAddress(address)) {
 
 			if (address.length() > 21) {
-				fprintf(stdout, "Ignoring address \"%s\" (Too much 1)\n", address.c_str());
+				fprintf(stdout, "Ignorando endereco \"%s\" (Too much 1)\n", address.c_str());
 				return false;
 			}
 			
@@ -345,13 +346,13 @@ bool VanitySearch::initAddress(std::string& address, ADDRESS_ITEM* it) {
 
 		if (searchType == P2SH) {
 			if (result.data()[0] != 5) {
-				fprintf(stdout, "Ignoring address \"%s\" (Unreachable, 31h1 to 3R2c only)\n", address.c_str());
+				fprintf(stdout, "Ignorando endereco \"%s\" (Unreachable, 31h1 to 3R2c only)\n", address.c_str());
 				return false;
 			}
 		}
 
 		if (result.size() != 25) {
-			fprintf(stdout, "Ignoring address \"%s\" (Invalid size)\n", address.c_str());
+			fprintf(stdout, "Ignorando endereco \"%s\" (tamanho invalido)\n", address.c_str());
 			return false;
 		}
 
@@ -411,6 +412,11 @@ void VanitySearch::enumCaseUnsentiveAddress(std::string s, std::vector<std::stri
 
 // ----------------------------------------------------------------------------
 
+static std::string padHex64(std::string h) {
+	while (h.size() < 64) h = "0" + h;
+	return h;
+}
+
 void VanitySearch::output(string addr, string pAddr, string pAddrHex, std::string pubKey) {
 
 #ifdef WIN64
@@ -436,31 +442,32 @@ void VanitySearch::output(string addr, string pAddr, string pAddrHex, std::strin
 
 
 
+	PainelBR::breakPanel();
 	if (f != stdout)
 		fprintf(f, "\nPublic Addr: %s\n", addr.c_str());	
-	fprintf(stdout, "\nPublic Addr: %s\n", addr.c_str());
+	fprintf(stdout, "\n*** CHAVE ENCONTRADA ***\nEndereco publico: %s\n", addr.c_str());
 
 	switch (searchType) {
 	case P2PKH:
 		if (f != stdout)
 			fprintf(f, "Priv (WIF): p2pkh:%s\n", pAddr.c_str());
-		fprintf(stdout, "Priv (WIF): p2pkh:%s\n", pAddr.c_str());
+		fprintf(stdout, "Chave priv. (WIF): p2pkh:%s\n", pAddr.c_str());
 		break;
 	case P2SH:
 		if (f != stdout)
 			fprintf(f, "Priv (WIF): p2wpkh-p2sh:%s\n", pAddr.c_str());
-		fprintf(stdout, "Priv (WIF): p2wpkh-p2sh:%s\n", pAddr.c_str());
+		fprintf(stdout, "Chave priv. (WIF): p2wpkh-p2sh:%s\n", pAddr.c_str());
 		break;
 	case BECH32:
 		if (f != stdout)
 			fprintf(f, "Priv (WIF): p2wpkh:%s\n", pAddr.c_str());
-		fprintf(stdout, "Priv (WIF): p2wpkh:%s\n", pAddr.c_str());
+		fprintf(stdout, "Chave priv. (WIF): p2wpkh:%s\n", pAddr.c_str());
 		break;
 	}
 
 	if (f != stdout)
-		fprintf(f, "Priv (HEX): 0x%064s\n", pAddrHex.c_str());	
-	fprintf(stdout, "Priv (HEX): 0x%064s\n", pAddrHex.c_str());
+		fprintf(f, "Priv (HEX): 0x%s\n", padHex64(pAddrHex).c_str());	
+	fprintf(stdout, "Chave priv. (HEX): 0x%s\n", padHex64(pAddrHex).c_str());
 	fprintf(stdout, "\n");
 
 	if (f != stdout)
@@ -781,8 +788,7 @@ void VanitySearch::getGPUStartingKeys(Int& tRangeStart, Int& tRangeEnd, int grou
 	for (size_t i = grp_startkeys / 2; i < nbThread; i += grp_startkeys) {
 
 		double percentage = (100.0 * (double)(i + grp_startkeys / 2)) / (double)(nbThread);
-		printf("Setting starting keys... [%.2f%%] \r", percentage);
-		fflush(stdout);
+		PainelBR::prepProgress(percentage);
 
 
 		for (j = 0; j < grp_startkeys / 2; j++) {
@@ -907,8 +913,20 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 	RandomJump_K_tot.SetInt32(0);
 	bool kneg = false;
 
-	fprintf(stdout, "GPU: %s\n", g.deviceName.c_str());
-	fflush(stdout);
+	PainelBR::init(ph->gpuId);
+	{
+		Int rangeSz;
+		rangeSz.Set(&bc->ksFinish);
+		rangeSz.Sub(&bc->ksStart);
+		rangeSz.AddOne();
+		std::string sHex = bc->ksStart.GetBase16();
+		std::string eHex = bc->ksFinish.GetBase16();
+		while (sHex.size() < 64) sHex = "0" + sHex;
+		while (eHex.size() < 64) eHex = "0" + eHex;
+		PainelBR::printHeader(g.deviceName, numThreadsGPU, STEP_SIZE,
+			rangeSz.GetBitLength() - 1, sHex, eHex,
+			(int)inputAddresses.size(), randomMode);
+	}
 
 	counters[thId] = 0;
 	
@@ -946,13 +964,9 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 	ttot = Timer::get_tick() - t0;
 
 
-	printf("Starting keys set in %.2f seconds \n", ttot);
-	fflush(stdout);
+	PainelBR::prepDone(ttot);
 
 	ph->hasStarted = true;
-
-	printf("GPU Started ! \r");
-	fflush(stdout);
 
 	t0 = Timer::get_tick();
 
@@ -1031,15 +1045,21 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 			
 
 		} else {
-			printf("Pausing...\r");
-			fflush(stdout);
-
 			g.FreeGPUEngine();
 
 			Paused = true;
 			t_Paused = ttot;
 		}
 		
+
+		// Chave atual do segmento 0 (a thread 0 varre ksStart + idx*STEP_SIZE)
+		panelCurKey.Set(&bc->ksStart);
+		{
+			Int seg0;
+			seg0.SetInt32(idxcount);
+			seg0.Mult(STEP_SIZE);
+			panelCurKey.Add(&seg0);
+		}
 
 		PrintStats(keys_n, keys_n_prev, ttot, tprev, taskSize, keycount);
 
@@ -1048,15 +1068,12 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 		if (keycount.IsGreaterOrEqual(&taskSize) && (!randomMode))
 		{
 			double avg_speed = static_cast<double>(keys_n) / (ttot * 1000000.0); // Avg speed in MK/s
-			printf("\n");
-			printf("Range Finished! - Average Speed: %.1f [MK/s] - Found: %d   \r", avg_speed, nbFoundKey);
-			printf("\n");
-			fflush(stdout);
+			PainelBR::finished(avg_speed, nbFoundKey);
 
 			char* ctimeBuff;
 			time_t now = time(NULL);
 			ctimeBuff = ctime(&now);
-			printf("Current task END time: %s", ctimeBuff);
+			printf("Tarefa encerrada em: %s", ctimeBuff);
 
 			endOfSearch = true;
 
@@ -1072,6 +1089,8 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 
 	
 
+	PainelBR::shutdown();
+
 	ph->isRunning = false;
 
 	endOfSearch = true;
@@ -1080,82 +1099,39 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 
 void VanitySearch::PrintStats(uint64_t keys_n, uint64_t keys_n_prev, double ttot, double tprev, Int taskSize, Int keycount) {
 
-	double speed;
-	double perc;
-	double log_keys;
-	double bkeys;
+	PainelBR::Status st;
 
-	Int Perc;
-
-	Perc.Set(&taskSize);
-	Perc.Mult(65536);
-	Perc.Div(&keycount);
-
-
-	if (ttot > tprev) {
-		speed = (keys_n - keys_n_prev) / (ttot - tprev) / 1000000.0; // speed in Mkey/s
+	st.speedMKs = 0.0;
+	if (ttot > tprev && keys_n >= keys_n_prev) {
+		st.speedMKs = (double)(keys_n - keys_n_prev) / (ttot - tprev) / 1000000.0; // Mkey/s
 	}
 
-
-	perc = (double)(1 / Perc.ToDouble()*100*65536);
-
-
-	log_keys = log2(static_cast<double>(keys_n));
-	bkeys = static_cast<double>(keys_n);
-	bkeys = bkeys / 1000000000;
-
-	int h_run = static_cast<int32_t>(ttot) / 3600;
-	int m_run = (static_cast<int32_t>(ttot) % 3600) / 60;
-	int s_run = static_cast<int32_t>(ttot) % 60;
-	int d_run = static_cast<int32_t>(ttot * 10) % 10;
-
-	double tempo_tot_stimato = ttot / (perc / 100.0);
-	double end_tt = tempo_tot_stimato - ttot;
-
-	int h_end = static_cast<int32_t>(end_tt) / 3600;
-	int m_end = (static_cast<int32_t>(end_tt) % 3600) / 60;
-	int s_end = static_cast<int32_t>(end_tt) % 60;
-	int d_end = static_cast<int32_t>(end_tt * 10) % 10;
-
-
+	st.keysDone = keys_n;
+	st.taskSize = taskSize.ToDouble();
+	st.runSec = ttot;
+	st.nFound = nbFoundKey;
+	st.nTargets = (int)inputAddresses.size();
+	st.paused = Paused;
+	st.randomMode = randomMode;
 
 	if (randomMode) {
-		if (!Paused) {
-
-			printf("%.1f MK/s - %.0f BKeys - 2^%.2f [%.2f%%] - RUN: %02d:%02d:%02d.%01d - Found: %d     ",
-				speed, bkeys, log_keys, perc, h_run, m_run, s_run, d_run, nbFoundKey);
-
-		}
-		else {
-			printf("Paused - %.0f Bkeys -  2^%.2f [%.2f%%] - RUN: %02d:%02d:%02d.%01d - Found: %d     ",
-				bkeys, log_keys, perc, h_run, m_run, s_run, d_run, nbFoundKey);
-
-			endOfSearch = true;
-		}
+		st.curKeyHex = "";
+		st.curKeyApprox = 0.0;
 	}
 	else {
-		if (!Paused) {
-
-			if (h_end >= 0)
-				printf("%.1f MK/s - %.0f BKeys - 2^%.2f [%.2f%%] - RUN: %02d:%02d:%02d.%01d|END: %02d:%02d:%02d.%01d - Found: %d     ",
-					speed, bkeys, log_keys, perc, h_run, m_run, s_run, d_run, h_end, m_end, s_end, d_end, nbFoundKey);
-			else
-				printf("%.1f MK/s - %.0f BKeys - 2^%.2f [%.2f%%] - RUN: %02d:%02d:%02d.%01d|END: Too much bro - Found: %d     ",
-					speed, bkeys, log_keys, perc, h_run, m_run, s_run, d_run, nbFoundKey);
-		}
-		else {
-			printf("Paused - %.0f BKeys - 2^%.2f [%.2f%%] - RUN: %02d:%02d:%02d.%01d|END: %02d:%02d:%02d.%01d - Found: %d     ",
-				bkeys,log_keys, perc, h_run, m_run, s_run, d_run, h_end, m_end, s_end, d_end, nbFoundKey);
-
-			endOfSearch = true;
-		}
+		std::string hex = panelCurKey.GetBase16();
+		while (hex.size() < 64) hex = "0" + hex;
+		st.curKeyHex = hex;
+		st.curKeyApprox = panelCurKey.ToDouble();
 	}
 
+	PainelBR::render(st);
 
-	printf("\r");
-
-
-	fflush(stdout);
+	// Ao pausar o motor e liberado e reiniciado: o proximo painel e novo.
+	if (Paused) {
+		PainelBR::breakPanel();
+		endOfSearch = true;
+	}
 }
 
 

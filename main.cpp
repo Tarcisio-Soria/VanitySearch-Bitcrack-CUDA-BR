@@ -104,6 +104,7 @@ void monitorKeypress() {
 
 
 #define RELEASE "2.2 by FixedPaul"
+#define RELEASE_BR "BR 1.0 (Tarcisio Soria / KKND)"
 
 using namespace std;
 
@@ -111,17 +112,19 @@ using namespace std;
 
 void printUsage() {
 
-	printf("VanitySeacrh [-v] [-gpuId] [-i inputfile] [-o outputfile] [-start HEX] [-range] [-m] [-stop] [-random]\n \n");
-	printf(" -v: Print version\n");
-	printf(" -i inputfile: Get list of addresses to search from specified file\n");
-	printf(" -o outputfile: Output results to the specified file\n");
-	printf(" -gpuId: GPU to use, default is 0\n");
-	printf(" -start start Private Key HEX\n");
-	printf(" -range bit range dimension. start -> (start + 2^range).\n");
-	printf(" -m: Max number of prefixes found by each kernel call, default is 262144 (use multiple of 65536)\n");
-	printf(" -stop: Stop when all prefixes are found\n");
-	printf(" -random: Random mode active. Each GPU thread scan 1024 random sequentally keys at each step. Not active by default\n");
-	printf(" -backup: Backup mode allows resuming from the progress percentage of the last sequential search. It does not work with random mode. \n");
+	printf("VanitySearch-Bitcrack-BR - busca de chaves privadas Bitcoin em GPU (CUDA)\n");
+	printf("Uso: vanitysearch [-v] [-gpuId N] [-i ARQUIVO] [-o ARQUIVO] [-start HEX] [-range BITS] [-m N] [-stop] [-random] [-backup] [ALVO]\n \n");
+	printf(" -v: mostra a versao\n");
+	printf(" -i ARQUIVO: le a lista de enderecos/prefixos do ARQUIVO\n");
+	printf(" -o ARQUIVO: grava os resultados no ARQUIVO\n");
+	printf(" -gpuId N: GPU a usar (padrao 0)\n");
+	printf(" -start HEX: chave privada inicial em hexadecimal\n");
+	printf(" -range BITS: tamanho do intervalo. start -> (start + 2^BITS)\n");
+	printf(" -m N: maximo de prefixos achados por chamada do kernel, padrao 262144 (use multiplos de 65536)\n");
+	printf(" -stop: para quando todos os prefixos forem encontrados\n");
+	printf(" -random: modo aleatorio. Cada thread da GPU varre 1024 chaves sequenciais aleatorias por passo. Desativado por padrao\n");
+	printf(" -backup: retoma do progresso da ultima busca sequencial (nao funciona com -random)\n");
+	printf(" Tecla [p] durante a busca: pausa/retoma e libera a GPU\n");
 	exit(-1);
 
 }
@@ -314,13 +317,13 @@ void parseFile(string fileName, vector<string>& lines) {
 			nbLine++;
 			if (loaddingProgress) {
 				if ((nbLine % 50000) == 0)
-					fprintf(stdout, "[Loading input file %5.1f%%]\r", ((double)nbLine * 100.0) / ((double)(nbAddr) * 33.0 / 34.0));
+					fprintf(stdout, "[Carregando arquivo de alvos %5.1f%%]\r", ((double)nbLine * 100.0) / ((double)(nbAddr) * 33.0 / 34.0));
 			}
 		}
 	}
 
 	if (loaddingProgress)
-		fprintf(stdout, "[Loading input file 100.0%%]\n");
+		fprintf(stdout, "[Carregando arquivo de alvos 100.0%%]\n");
 }
 
 void generateKeyPair(Secp256K1* secp, string seed, int searchMode, bool paranoiacSeed) {
@@ -635,7 +638,7 @@ int main(int argc, char* argv[]) {
 
 	}
 
-	fprintf(stdout, "VanitySearch-Bitcrack v" RELEASE "\n");
+	fprintf(stdout, "VanitySearch-Bitcrack-BR v" RELEASE_BR " - base v" RELEASE "\n");
 
 	if (gridSize.size() == 0) {
 		for (int i = 0; i < gpuId.size(); i++) {
@@ -665,17 +668,22 @@ int main(int argc, char* argv[]) {
 	Range.SubOne();
 
 	getKeySpace(string(start + ":+" + Range.GetBase16()), bc, maxKey);
+	if (bc->ksStart.IsZero()) {
+		// A chave privada 0 nao existe (ponto no infinito): comeca em 1
+		bc->ksStart.SetInt32(1);
+		fprintf(stdout, "[aviso] -start 0 invalido (chave 0 nao existe): usando inicio=1\n");
+	}
 	bc->ksNext.Set(&bc->ksStart);
 	checkKeySpace(bc, maxKey);
 
 
 	{
 
-		fprintf(stdout, "[keyspace]  range=2^%d\n", range);
-		fprintf(stdout, "[keyspace]  start=%s\n", bc->ksStart.GetBase16().c_str());
-		fprintf(stdout, "[keyspace]    end=%s\n", bc->ksFinish.GetBase16().c_str());
+		fprintf(stdout, "[keyspace] intervalo=2^%d\n", range);
+		fprintf(stdout, "[keyspace]    inicio=%s\n", bc->ksStart.GetBase16().c_str());
+		fprintf(stdout, "[keyspace]       fim=%s\n", bc->ksFinish.GetBase16().c_str());
 		if (randomMode) {
-			fprintf(stdout, "Random Mode Enabled !\n");
+			fprintf(stdout, "Modo aleatorio ATIVADO !\n");
 		}
 		fflush(stdout);
 
@@ -686,7 +694,7 @@ int main(int argc, char* argv[]) {
 
 		if (backupMode) {
 			loadBackup(idxcount, t_Paused, gpuId[0]);
-			fprintf(stdout, "Backup enabled ! \n");
+			fprintf(stdout, "Backup ativado: retomando do ultimo progresso !\n");
 		}
 	repeatP:
 		Paused = false;
@@ -696,7 +704,7 @@ int main(int argc, char* argv[]) {
 		while (Paused) {
 			Timer::SleepMillis(100);
 			if (!Pause) {
-				fprintf(stdout, "\nResuming...\n");
+				fprintf(stdout, "\nRetomando...\n");
 				goto repeatP;
 				
 			}

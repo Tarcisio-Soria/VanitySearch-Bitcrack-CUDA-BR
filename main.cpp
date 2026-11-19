@@ -19,6 +19,7 @@
 #include <sstream> 
 #include "Timer.h"
 #include "Vanity.h"
+#include "PainelBR.h"
 #include "SECP256k1.h"
 #include <fstream>
 #include <string>
@@ -317,13 +318,13 @@ void parseFile(string fileName, vector<string>& lines) {
 			nbLine++;
 			if (loaddingProgress) {
 				if ((nbLine % 50000) == 0)
-					fprintf(stdout, "[Carregando arquivo de alvos %5.1f%%]\r", ((double)nbLine * 100.0) / ((double)(nbAddr) * 33.0 / 34.0));
+					PainelBR::progress("Carregando arquivo de alvos", ((double)nbLine * 100.0) / ((double)(nbAddr) * 33.0 / 34.0));
 			}
 		}
 	}
 
 	if (loaddingProgress)
-		fprintf(stdout, "[Carregando arquivo de alvos 100.0%%]\n");
+		PainelBR::progressEnd();
 }
 
 void generateKeyPair(Secp256K1* secp, string seed, int searchMode, bool paranoiacSeed) {
@@ -601,6 +602,7 @@ int main(int argc, char* argv[]) {
 		else if (strcmp(argv[a], "-i") == 0) {
 			a++;
 			parseFile(string(argv[a]), address);
+			PainelBR::setSource(string(argv[a]));
 			a++;
 
 		}
@@ -638,7 +640,7 @@ int main(int argc, char* argv[]) {
 
 	}
 
-	fprintf(stdout, "VanitySearch-Bitcrack-BR v" RELEASE_BR " - base v" RELEASE "\n");
+	PainelBR::setVersion(RELEASE_BR, RELEASE);
 
 	if (gridSize.size() == 0) {
 		for (int i = 0; i < gpuId.size(); i++) {
@@ -671,7 +673,7 @@ int main(int argc, char* argv[]) {
 	if (bc->ksStart.IsZero()) {
 		// A chave privada 0 nao existe (ponto no infinito): comeca em 1
 		bc->ksStart.SetInt32(1);
-		fprintf(stdout, "[aviso] -start 0 invalido (chave 0 nao existe): usando inicio=1\n");
+		PainelBR::addNote("-start 0 inv\xc3\xa1" "lido (chave 0 n\xc3\xa3o existe): usando in\xc3\xad" "cio 1");
 	}
 	bc->ksNext.Set(&bc->ksStart);
 	checkKeySpace(bc, maxKey);
@@ -688,7 +690,7 @@ int main(int argc, char* argv[]) {
 
 		if (backupMode) {
 			loadBackup(idxcount, t_Paused, gpuId[0]);
-			fprintf(stdout, "Backup ativado: retomando do ultimo progresso !\n");
+			PainelBR::addNote("Backup ativado: retomando do \xc3\xba" "ltimo progresso");
 		}
 	repeatP:
 		Paused = false;

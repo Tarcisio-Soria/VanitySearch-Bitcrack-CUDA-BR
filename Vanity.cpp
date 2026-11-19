@@ -69,7 +69,7 @@ VanitySearch::VanitySearch(Secp256K1* secp, vector<std::string>& inputAddresses,
 	// Insert addresses
 	bool loadingProgress = (inputAddresses.size() > 1000);
 	if (loadingProgress)
-		fprintf(stdout, "[Montando tabela16   0.0%%]\r");
+		PainelBR::progress("Montando tabela de busca (1/2)", 0.0);
 
 	nbAddress = 0;
 	onlyFull = true;
@@ -105,11 +105,11 @@ VanitySearch::VanitySearch(Secp256K1* secp, vector<std::string>& inputAddresses,
 		}
 
 		if (loadingProgress && i % 1000 == 0)
-			fprintf(stdout, "[Montando tabela16 %5.1f%%]\r", (((double)i) / (double)(inputAddresses.size() - 1)) * 100.0);
+			PainelBR::progress("Montando tabela de busca (1/2)", (((double)i) / (double)(inputAddresses.size() - 1)) * 100.0);
 	}
 
 	if (loadingProgress)
-		fprintf(stdout, "\n");
+		PainelBR::progressEnd();
 
 	if (nbAddress == 0) 
 	{
@@ -146,11 +146,11 @@ VanitySearch::VanitySearch(Secp256K1* secp, vector<std::string>& inputAddresses,
 		}
 
 		if (loadingProgress)
-			fprintf(stdout, "[Montando tabela32 %.1f%%]\r", ((double)i * 100.0) / (double)addresses.size());
+			PainelBR::progress("Montando tabela de busca (2/2)", ((double)i * 100.0) / (double)addresses.size());
 	}
 
 	if (loadingProgress)
-		fprintf(stdout, "\n");
+		PainelBR::progressEnd();
 	
 	// Os alvos sao resumidos no painel de preparo ("Alvos: N endereco(s)").
 

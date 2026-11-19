@@ -53,6 +53,28 @@ static bool g_panelDrawn = false;
 // Estado guardado pela fase de preparo.
 static std::string g_gpuName;
 static int g_nTargets = 0;
+static std::string g_ver, g_base, g_source;
+static std::vector<std::string> g_notes;
+
+void setVersion(const std::string &ver, const std::string &base) { g_ver = ver; g_base = base; }
+void setSource(const std::string &file)
+{
+	// so o nome do arquivo, sem diretorios
+	size_t p = file.find_last_of("/\\");
+	g_source = (p == std::string::npos) ? file : file.substr(p + 1);
+}
+void addNote(const std::string &text) { g_notes.push_back(text); }
+
+void progress(const std::string &what, double pct)
+{
+	printf("\r\033[K  %s%s %5.1f%%%s", DIM, what.c_str(), pct, RESET);
+	fflush(stdout);
+}
+void progressEnd()
+{
+	printf("\r\033[K");
+	fflush(stdout);
+}
 
 // ---- Formatacao (mesmo padrao do BitCrack-BR: milhar ',' e decimal '.') ----
 std::string thousands(uint64_t v)
@@ -215,7 +237,7 @@ void printHeader(const std::string &device, int nbThread, int stepSize,
 	uint64_t parallel = (uint64_t)nbThread * (uint64_t)stepSize;
 
 	std::string o;
-	o += "\n" + title("PREPARANDO BUSCA") + "\n";
+	o += title("PREPARANDO BUSCA") + "\n";
 	o += std::string("  ") + BOLD + CYAN + g_gpuName + RESET + telStr(pipe) + pipe + "compress.: comprimida" + "\n";
 	o += "  Config:  " + thousands((uint64_t)nbThread) + " threads " + DIM + "\xc3\x97" + RESET + " "
 	   + thousands((uint64_t)stepSize) + " chaves/passo  =  " + BOLD + thousands(parallel) + RESET + " chaves por lan\xc3\xa7" "amento\n";
@@ -224,6 +246,10 @@ void printHeader(const std::string &device, int nbThread, int stepSize,
 	o += "  Fim:    " + endHex + "\n";
 	o += std::string("  Passo:  1  ") + DIM + "(sequencial)" + RESET + sep + "intervalo: " + std::to_string(rangeBits) + " bits"
 	   + (randomMode ? std::string(sep) + YELLOW + "modo aleat\xc3\xb3rio" + RESET : std::string("")) + "\n";
+	for(size_t i = 0; i < g_notes.size(); i++) {
+		o += std::string("  ") + YELLOW + "\xe2\x9a\xa0 " + g_notes[i] + RESET + "\n";
+	}
+	g_notes.clear();  // cada aviso aparece uma vez
 	o += std::string(DIM) + RULE + RESET + "\n";
 
 	// Pontos iniciais: x e y de 32 bytes cada por thread.
@@ -250,7 +276,12 @@ void prepDone(double seconds)
 {
 	printf("\r\033[K  [%s%s%s] 100%%\n", GREEN, repeat("\xe2\x96\x88", 40).c_str(), RESET);
 	printf("  %s\xe2\x9c\x94%s Pontos iniciais gerados em %.2f s\n", GREEN, RESET, seconds);
-	printf("  %s\xe2\x9c\x94%s Alvos: %s endere\xc3\xa7os\n", GREEN, RESET, thousands((uint64_t)g_nTargets).c_str());
+	std::string alvos = std::string("  ") + GREEN + "\xe2\x9c\x94" + RESET + " Alvos: " + thousands((uint64_t)g_nTargets) + " endere\xc3\xa7os";
+	if(!g_source.empty()) { alvos += sepStr() + "de \"" + g_source + "\""; }
+	printf("%s\n", alvos.c_str());
+	if(!g_ver.empty()) {
+		printf("%s  VanitySearch-Bitcrack-BR \xc2\xb7 %s \xc2\xb7 base v%s%s\n", DIM, g_ver.c_str(), g_base.c_str(), RESET);
+	}
 	fflush(stdout);
 }
 

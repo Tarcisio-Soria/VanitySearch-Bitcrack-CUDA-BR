@@ -35,6 +35,15 @@ namespace PainelBR {
 	void init(int gpuIndex);
 	void shutdown();
 
+	// Informacoes que entram no painel de preparo (em vez de linhas soltas).
+	void setVersion(const std::string &ver, const std::string &base);
+	void setSource(const std::string &file);      // arquivo de alvos (-i)
+	void addNote(const std::string &text);        // aviso amarelo (mostrado uma vez)
+
+	// Linha temporaria de carregamento: se apaga sozinha ao terminar.
+	void progress(const std::string &what, double pct);
+	void progressEnd();
+
 	// Forca o proximo render a desenhar um painel novo (abaixo do texto atual).
 	// Chamar antes de imprimir qualquer coisa "no meio" do painel.
 	void breakPanel();

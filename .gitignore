@@ -364,3 +364,9 @@ FodyWeavers.xsd
 # build
 vanitysearch
 obj/
+
+# listas de alvos, resultados e progresso locais
+2025.txt
+*:Zone.Identifier
+ENCONTRADO.txt
+VSbackup_gpu*.dat

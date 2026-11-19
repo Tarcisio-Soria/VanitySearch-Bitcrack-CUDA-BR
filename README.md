@@ -19,19 +19,33 @@ astronômico) e **ilegal**. Use apenas em endereços que são seus ou nos puzzle
 ## Novidades da versão BR
 
 - 🖥️ **Painel ao vivo em duas fases** (redesenhado no mesmo lugar):
-  - **Preparo** — GPU, VRAM, temperatura/clock/fan, configuração (threads × grupo), alvos,
-    intervalo em bits, início/fim e **barra de progresso** na geração das chaves iniciais.
+  - **Preparo** — GPU, VRAM, temperatura/clock/fan, configuração, alvos válidos e ignorados,
+    intervalo em bits, início/fim completos (64 hex) e **barra de progresso** na geração das
+    chaves iniciais.
   - **Busca em andamento** — MKey/s, chaves varridas, barra de progresso + ETA, chave atual
-    completa (64 hex), posição no espaço total (0 → 2²⁵⁶), chaves encontradas.
+    completa, posição no espaço total (0 → 2²⁵⁶), chaves encontradas.
 - 🌡️ **Telemetria NVML** (NVIDIA): temperatura colorida conforme o limite de *throttle* lido da
-  própria GPU, clock e fan. VRAM usada/total também via NVML.
+  própria GPU, clock, fan e VRAM.
 - 🇧🇷 **Mensagens e `--help` em português.**
 - 🎯 **Multi-arquitetura**: SASS nativo para **sm_52, 61, 75, 80, 86, 89, 90 e 120**
-  (Maxwell → Blackwell/RTX 50xx; `sm_120` exige CUDA ≥ 12.8).
-- 🔧 Correções: velocidade não inicializada e divisão por zero no cálculo de progresso;
-  build em compiladores recentes (gcc ≥ 14, `-include cstdint`).
+  (Maxwell → Blackwell/RTX 50xx), escolhido conforme o CUDA instalado.
 - Mantido do projeto-base: pausa/retomada com **`p`** (libera a GPU), **`-backup`**, **`-random`**,
   `-range` em potência de 2.
+
+### Correções em relação ao projeto-base
+
+- **Nenhuma chave era encontrada com gcc ≥ 12.** O código de hash herdado (SSE/RIPEMD160)
+  calculava o hash160 errado na CPU, que descartava todo acerto da GPU
+  (`wrong private key generated`). O `Makefile` agora compila com `-fno-strict-aliasing`.
+- **`-start 0` nunca funcionava**: a chave 0 não existe e gerava pontos iniciais inválidos.
+  Agora o início vira `1`, com aviso.
+- **Endereço completo digitado errado era aceito em silêncio** (nunca seria encontrado). Agora
+  o tamanho, a versão e o checksum são conferidos, e o item é ignorado com o motivo.
+- **Cobertura do intervalo**: o passo de cada thread é arredondado para cima, para que um intervalo
+  de tamanho qualquer não deixe chaves do fim sem varrer.
+- **`-random`**: cada chave encontrada é mostrada e contada uma única vez.
+- Velocidade não inicializada e divisão por zero no cálculo de progresso.
+- `make` sem alvo agora compila o programa (antes só compilava o kernel).
 
 > O arquivo de saída (`-o`) mantém o **formato original** (`Public Addr:` / `Priv (HEX):`) para não
 > quebrar scripts; só o texto mostrado no terminal foi traduzido.
@@ -45,52 +59,91 @@ vanitysearch [-v] [-gpuId N] [-i ARQUIVO] [-o ARQUIVO] [-start HEX] [-range BITS
 
 | Opção | Descrição |
 |---|---|
-| `-start HEX` | chave privada inicial (hex) |
-| `-range BITS` | varre de `start` até `start + 2^BITS` |
-| `-i ARQUIVO` / `-o ARQUIVO` | lê alvos / grava resultados |
+| `-start HEX` | chave privada inicial em hexadecimal, sem `0x` (`0` vira `1`) |
+| `-range BITS` | varre `2^BITS` chaves, de `start` até `start + 2^BITS − 1` |
+| `-i ARQUIVO` / `-o ARQUIVO` | lê a lista de alvos / grava as chaves encontradas |
+| `-stop` | para quando **todos** os alvos forem encontrados |
 | `-gpuId N` | GPU a usar (apenas uma por execução) |
-| `-random` | modo aleatório |
-| `-backup` | retoma o progresso da última busca sequencial |
+| `-random` | modo aleatório (veja abaixo) |
+| `-backup` | retoma o progresso da última busca sequencial (não vale para `-random`) |
 | `p` (durante a busca) | pausa/retoma e libera a GPU |
 
-Apenas endereços/prefixos **comprimidos** e **uma GPU** por execução (limitações do projeto-base).
+O `-range` não é uma propriedade da chave: é **quanto você quer varrer** a partir do `-start`.
+Cada +1 dobra o tempo (a ~900 MKey/s, `-range 36` leva cerca de 77 s).
 
-Exemplo (varre 2²⁸ chaves a partir de 1):
+Exemplos:
 
 ```
-./vanitysearch -start 1 -range 28 ENDERECO
+./vanitysearch -start 0 -range 36 ENDERECO                      # um endereço
+./vanitysearch -i alvos.txt -start 4000000000 -range 38 -o achadas.txt   # lista
 ```
+
+### Lista de alvos (`-i`)
+
+Uma lista pode misturar itens diferentes:
+
+- **endereços completos** (ex.: 34 caracteres): validados por tamanho e checksum — um endereço
+  digitado errado é **ignorado com aviso**, não procurado;
+- **prefixos mais curtos**: casam com qualquer endereço que comece assim;
+- **tipos diferentes** (`1…`, `3…`, `bc1q…`): a busca usa **um tipo por vez**, o do primeiro item
+  válido; os de outro tipo são ignorados.
+
+O painel mostra só os alvos **válidos** e quantos foram ignorados. Os 5 primeiros motivos são
+listados. Apenas endereços **comprimidos**.
+
+### Modo `-random`
+
+Sorteia posições dentro de `[start, start + 2^range)` e **nunca termina sozinho** (pare com
+`Ctrl+C`). Não garante varrer tudo e só faz sentido em intervalos grandes: um lançamento varre
+~2³⁰ chaves, então abaixo de 2⁴⁰ o painel avisa que o intervalo é pequeno demais.
+
+### Varrer "para frente" sem fim
+
+Não há `--keyspace` aberto como no BitCrack: o programa divide o intervalo entre as threads, então
+um `-range` enorme não equivale a varrer em ordem a partir da chave. Faça janelas sucessivas, com o
+`-start` de cada uma igual ao anterior somado a `2^range`.
 
 ## Build (Linux)
 
 ```
-make                       # build padrão (com NVML), compilador host g++-9
-make CCBIN=g++-14          # escolhe o compilador host (necessário em distros recentes)
+make                       # detecta compilador (g++ mais novo) e arquiteturas do CUDA instalado
+make CCBIN=g++-14          # força o compilador host
 make NVML=0                # sem telemetria NVML (não exige libnvidia-ml)
 make clean
 ```
 
-- **CUDA Toolkit ≥ 12.8** para incluir `sm_120`. Para build mais rápido, deixe só a sua
-  arquitetura em `GENCODE` no [`Makefile`](Makefile) (ex.: RTX 3060 = `sm_86`).
+- **CUDA Toolkit ≥ 11.8.** `sm_120` (RTX 50xx) entra com CUDA ≥ 12.8; `sm_52` sai com CUDA ≥ 13.
+  Para um build mais rápido, deixe só a sua arquitetura em `GENCODE` no [`Makefile`](Makefile)
+  (ex.: RTX 3060 = `sm_86`).
+- O CUDA exige um gcc compatível com a versão instalada; se o detectado não servir, passe `CCBIN`.
 - Com NVML, o link usa os *stubs* de `$(CUDA)/lib64/stubs`; em execução a biblioteca vem do
   driver (`libnvidia-ml.so`). No WSL ela fica em `/usr/lib/wsl/lib`.
 - Em distros muito recentes, veja as notas de glibc/gcc no README do
   [BitCrack-BR](https://github.com/Tarcisio-Soria/BitCrack-BR).
+
+### Testado
+
+Linux (Ubuntu no WSL2), CUDA 12.9, gcc 14, RTX 3060 Laptop. O **build do Windows** (Visual Studio)
+tem o novo módulo no projeto, mas **não foi testado**; a telemetria NVML não é ligada nele.
+
+> Os binários pré-compilados que vinham com o projeto-base foram removidos deste repositório:
+> compile a partir do código-fonte.
 
 ## Estrutura do que foi adicionado
 
 | Arquivo | Papel |
 |---|---|
 | [`PainelBR.h`](PainelBR.h) / [`PainelBR.cpp`](PainelBR.cpp) | painel, barras, formatação e NVML — módulo independente do motor de busca |
-| `Vanity.cpp` (`FindKeyGPU`, `PrintStats`, `getGPUStartingKeys`) | pontos de integração do painel |
-| `main.cpp`, `Makefile` | ajuda em PT-BR, versão BR, multi-arch, NVML |
+| `Vanity.cpp` (`FindKeyGPU`, `PrintStats`, `getGPUStartingKeys`, `initAddress`) | integração do painel, cobertura do intervalo e validação dos alvos |
+| `main.cpp`, `Makefile` | ajuda em PT-BR, banner, multi-arch, NVML, detecção de compilador e CUDA |
 
 ## Créditos
 
 - **[Jean-Luc Pons](https://github.com/JeanLucPons/VanitySearch)** — autor do VanitySearch original.
 - **[FixedPaul](https://github.com/FixedPaul/VanitySearch-Bitcrack)** — adaptação estilo BitCrack e
   otimizações CUDA (base deste fork).
-- **Tarcisio Soria (KKND)** — adaptação BR: painel, telemetria, tradução e multi-arquitetura.
+- **Tarcisio Soria (KKND)** — adaptação BR: painel, telemetria, tradução, correções e
+  multi-arquitetura.
 
 ## Licença
 

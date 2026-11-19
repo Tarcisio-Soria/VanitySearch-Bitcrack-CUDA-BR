@@ -9,6 +9,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <vector>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -313,6 +314,31 @@ void render(const Status &s)
 	       + DIM + "   \xc2\xb7   [p] pausa/retoma   \xc2\xb7   Ctrl+C para parar" + RESET);
 
 	fputs(p.c_str(), stdout);
+	fflush(stdout);
+}
+
+void found(const std::string &address, const std::string &privHex64, const std::string &wif,
+           const std::string &pubKey, bool compressed, const std::string &savedFile)
+{
+	g_panelDrawn = false;  // o proximo painel e desenhado abaixo deste bloco
+
+	time_t now = time(NULL);
+	char ts[32];
+	strftime(ts, sizeof(ts), "%Y-%m-%d.%H:%M:%S", localtime(&now));
+
+	std::string o;
+	o += std::string("\n") + DIM + "[" + ts + "] [Info]" + RESET + " " + BOLD + GREEN + "CHAVE ENCONTRADA" + RESET + "\n";
+	o += std::string(BOLD) + GREEN + "Endere\xc3\xa7o:      " + RESET + address + "\n";
+	o += std::string(BOLD) + GREEN + "Chave priv.:   " + RESET + privHex64 + "\n";
+	if(!wif.empty()) {
+		o += std::string(BOLD) + GREEN + "Chave WIF:     " + RESET + wif + "\n";
+	}
+	o += std::string("Comprimida:    ") + (compressed ? "sim" : "n\xc3\xa3o") + "\n";
+	o += std::string("Chave pub.:    ") + pubKey + "\n";
+	if(!savedFile.empty()) {
+		o += std::string(DIM) + "Salva em '" + savedFile + "'" + RESET + "\n";
+	}
+	fputs(o.c_str(), stdout);
 	fflush(stdout);
 }
 

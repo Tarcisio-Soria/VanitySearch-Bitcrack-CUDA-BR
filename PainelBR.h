@@ -50,6 +50,11 @@ namespace PainelBR {
 	void render(const Status &s);
 	void finished(double avgSpeedMKs, int nFound);
 
+	// Bloco de "chave encontrada" no mesmo estilo do BitCrack-BR.
+	// savedFile vazio = nao ha arquivo de saida.
+	void found(const std::string &address, const std::string &privHex64, const std::string &wif,
+	           const std::string &pubKey, bool compressed, const std::string &savedFile);
+
 	// Auxiliares de formatacao (expostos para reuso).
 	std::string thousands(uint64_t v);
 	std::string hms(double sec);

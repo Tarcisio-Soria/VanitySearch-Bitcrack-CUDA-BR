@@ -679,12 +679,6 @@ int main(int argc, char* argv[]) {
 
 	{
 
-		fprintf(stdout, "[keyspace] intervalo=2^%d\n", range);
-		fprintf(stdout, "[keyspace]    inicio=%s\n", bc->ksStart.GetBase16().c_str());
-		fprintf(stdout, "[keyspace]       fim=%s\n", bc->ksFinish.GetBase16().c_str());
-		if (randomMode) {
-			fprintf(stdout, "Modo aleatorio ATIVADO !\n");
-		}
 		fflush(stdout);
 
 

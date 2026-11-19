@@ -152,18 +152,7 @@ VanitySearch::VanitySearch(Secp256K1* secp, vector<std::string>& inputAddresses,
 	if (loadingProgress)
 		fprintf(stdout, "\n");
 	
-	string searchInfo = string(searchModes[searchMode]);
-	if (nbAddress < 10) 
-	{	
-		for (size_t i = 0; i < nbAddress; i++)
-		{
-			fprintf(stdout, "Alvo: %s [%s]\n", inputAddresses[i].c_str(), searchInfo.c_str());
-		}
-	}
-	else 
-	{		
-		fprintf(stdout, "Alvos: %d (tabela %d,[%d,%d]) [%s]\n", nbAddress, unique_sAddress, minI, maxI, searchInfo.c_str());
-	}
+	// Os alvos sao resumidos no painel de preparo ("Alvos: N endereco(s)").
 
 	//// Compute Generator table G[n] = (n+1)*G
 	//Point g = secp->G;
@@ -189,10 +178,6 @@ VanitySearch::VanitySearch(Secp256K1* secp, vector<std::string>& inputAddresses,
 
 	startKey.Set(&bc->ksNext);	
 
-	char* ctimeBuff;
-	time_t now = time(NULL);
-	ctimeBuff = ctime(&now);
-	fprintf(stdout, "Tarefa iniciada em: %s", ctimeBuff);
 	fflush(stdout);
 }
 
@@ -442,37 +427,38 @@ void VanitySearch::output(string addr, string pAddr, string pAddrHex, std::strin
 
 
 
-	PainelBR::breakPanel();
+	// Arquivo de saida: formato original mantido (compativel com scripts).
 	if (f != stdout)
-		fprintf(f, "\nPublic Addr: %s\n", addr.c_str());	
-	fprintf(stdout, "\n*** CHAVE ENCONTRADA ***\nEndereco publico: %s\n", addr.c_str());
+		fprintf(f, "\nPublic Addr: %s\n", addr.c_str());
 
+	std::string wifLabel;
 	switch (searchType) {
 	case P2PKH:
+		wifLabel = "p2pkh:" + pAddr;
 		if (f != stdout)
 			fprintf(f, "Priv (WIF): p2pkh:%s\n", pAddr.c_str());
-		fprintf(stdout, "Chave priv. (WIF): p2pkh:%s\n", pAddr.c_str());
 		break;
 	case P2SH:
+		wifLabel = "p2wpkh-p2sh:" + pAddr;
 		if (f != stdout)
 			fprintf(f, "Priv (WIF): p2wpkh-p2sh:%s\n", pAddr.c_str());
-		fprintf(stdout, "Chave priv. (WIF): p2wpkh-p2sh:%s\n", pAddr.c_str());
 		break;
 	case BECH32:
+		wifLabel = "p2wpkh:" + pAddr;
 		if (f != stdout)
 			fprintf(f, "Priv (WIF): p2wpkh:%s\n", pAddr.c_str());
-		fprintf(stdout, "Chave priv. (WIF): p2wpkh:%s\n", pAddr.c_str());
 		break;
 	}
 
 	if (f != stdout)
-		fprintf(f, "Priv (HEX): 0x%s\n", padHex64(pAddrHex).c_str());	
-	fprintf(stdout, "Chave priv. (HEX): 0x%s\n", padHex64(pAddrHex).c_str());
-	fprintf(stdout, "\n");
+		fprintf(f, "Priv (HEX): 0x%s\n", padHex64(pAddrHex).c_str());
 
 	if (f != stdout)
 		fflush(f);
-	fflush(stdout);
+
+	// Tela: mesmo bloco de "chave encontrada" do BitCrack-BR.
+	PainelBR::found(addr, padHex64(pAddrHex), wifLabel, pubKey, true,
+		(f != stdout) ? outputFile : std::string(""));
 	//fflush(stderr);	
 
 	if (needToClose)
@@ -917,14 +903,13 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 	{
 		Int rangeSz;
 		rangeSz.Set(&bc->ksFinish);
-		rangeSz.Sub(&bc->ksStart);
-		rangeSz.AddOne();
+		rangeSz.Sub(&bc->ksStart);   // fim - inicio: bits do intervalo (2^36 -> 36)
 		std::string sHex = bc->ksStart.GetBase16();
 		std::string eHex = bc->ksFinish.GetBase16();
 		while (sHex.size() < 64) sHex = "0" + sHex;
 		while (eHex.size() < 64) eHex = "0" + eHex;
 		PainelBR::printHeader(g.deviceName, numThreadsGPU, STEP_SIZE,
-			rangeSz.GetBitLength() - 1, sHex, eHex,
+			rangeSz.GetBitLength(), sHex, eHex,
 			(int)inputAddresses.size(), randomMode);
 	}
 
@@ -1069,11 +1054,6 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 		{
 			double avg_speed = static_cast<double>(keys_n) / (ttot * 1000000.0); // Avg speed in MK/s
 			PainelBR::finished(avg_speed, nbFoundKey);
-
-			char* ctimeBuff;
-			time_t now = time(NULL);
-			ctimeBuff = ctime(&now);
-			printf("Tarefa encerrada em: %s", ctimeBuff);
 
 			endOfSearch = true;
 

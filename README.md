@@ -108,6 +108,61 @@ Não há `--keyspace` aberto como no BitCrack: o programa divide o intervalo ent
 um `-range` enorme não equivale a varrer em ordem a partir da chave. Faça janelas sucessivas, com o
 `-start` de cada uma igual ao anterior somado a `2^range`.
 
+## Exemplos
+
+Substitua `ENDERECO` por um endereço seu (ou de um puzzle público) e `alvos.txt` pela sua lista.
+
+```bash
+# 1. Um endereço: de 1 até FFFFFFFFF (2^36 chaves, ~77 s a ~900 MKey/s)
+./vanitysearch -start 0 -range 36 ENDERECO
+
+# 2. Uma lista de endereços, salvando o que for encontrado
+./vanitysearch -i alvos.txt -start 0 -range 36 -o achadas.txt
+
+# 3. Parar assim que TODOS os alvos forem encontrados
+./vanitysearch -i alvos.txt -start 0 -range 36 -stop -o achadas.txt
+
+# 4. Começar de uma chave específica (hexadecimal, sem 0x): 2^36 chaves a partir de 2400
+./vanitysearch -start 2400 -range 36 ENDERECO
+
+# 5. Varrer "para frente" em janelas sucessivas de 2^36 chaves
+#    (o -start de cada janela = anterior + 1000000000, que é 2^36 em hexadecimal)
+./vanitysearch -start 2400       -range 36 ENDERECO
+./vanitysearch -start 1000002400 -range 36 ENDERECO
+./vanitysearch -start 2000002400 -range 36 ENDERECO
+
+# 6. Intervalo de um puzzle de 40 bits: de 2^39 até 2^40 - 1
+./vanitysearch -start 8000000000 -range 39 -o achadas.txt ENDERECO
+
+# 7. Modo aleatório num intervalo grande (pare com Ctrl+C)
+./vanitysearch -i alvos.txt -start 0 -range 44 -random -o achadas.txt
+
+# 8. Retomar a última busca sequencial (o progresso é salvo a cada ~60 s)
+./vanitysearch -i alvos.txt -start 0 -range 40 -backup -o achadas.txt
+
+# 9. Escolher outra GPU
+./vanitysearch -gpuId 1 -start 0 -range 36 ENDERECO
+```
+
+Durante a busca, `p` pausa e libera a GPU; apertar `p` de novo retoma.
+
+### Como fica na tela
+
+As imagens abaixo foram geradas a partir de execuções reais numa RTX 3060 Laptop, com dois alvos de
+teste (um deles é a chave de teste `0x2400`). Os números variam conforme a GPU e a temperatura.
+
+**Preparo da busca** — GPU, configuração, intervalo, avisos e alvos válidos:
+
+![Preparo da busca](docs/preparo.svg)
+
+**Busca em andamento** — o painel é redesenhado no mesmo lugar, sem rolar a tela:
+
+![Busca em andamento](docs/busca.svg)
+
+**Chave encontrada** — o bloco aparece e o painel continua logo abaixo:
+
+![Chave encontrada](docs/encontrada.svg)
+
 ## Build (Linux)
 
 ```

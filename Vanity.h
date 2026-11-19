@@ -20,6 +20,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 #include "SECP256k1.h"
 #include "GPU/GPUEngine.h"
 #include <atomic>
@@ -95,6 +96,7 @@ public:
 		bool stop, std::string outputFile, uint32_t maxFound, BITCRACK_PARAM* bc);
 
 	void Search(std::vector<int> gpuId, std::vector<int> gridSize);
+	bool AllTargetsFound() { return allTargetsFound; }   // -stop: todos os alvos achados
 	void FindKeyGPU(TH_PARAM* p);
 
 private:
@@ -154,6 +156,8 @@ private:
 
 	Int firstGPUThreadLastPrivateKey;
 	Int panelCurKey;
+	bool allTargetsFound = false;
+	std::set<std::string> reportedKeys;   // endereco:chave ja mostrados (evita repeticao)
 
 	Int beta;
 	Int lambda;

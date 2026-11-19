@@ -641,6 +641,11 @@ int main(int argc, char* argv[]) {
 	}
 
 	PainelBR::setBanner(BANNER_BR);
+	if (randomMode && range < 40) {
+		// Cada lancamento varre ~2^30 chaves: num intervalo pequeno o modo aleatorio
+		// cobre quase tudo a cada passo e so revisita as mesmas chaves.
+		PainelBR::addNote("Modo aleat\xc3\xb3" "rio com intervalo pequeno (2^" + std::to_string(range) + "): use -range maior (40 ou mais).");
+	}
 
 	if (gridSize.size() == 0) {
 		for (int i = 0; i < gpuId.size(); i++) {

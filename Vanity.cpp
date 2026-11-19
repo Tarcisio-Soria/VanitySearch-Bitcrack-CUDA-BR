@@ -492,8 +492,9 @@ void VanitySearch::updateFound() {
 			allFound &= iFound;
 		}
 
-		endOfSearch = allFound;		
-	}		
+		endOfSearch = allFound;
+		if (allFound) allTargetsFound = true;
+	}
 }
 
 bool VanitySearch::checkPrivKey(string addr, Int& key, int32_t incr, int endomorphism, bool mode) {
@@ -539,6 +540,16 @@ bool VanitySearch::checkPrivKey(string addr, Int& key, int32_t incr, int endomor
 			return false;
 		}
 
+	}
+
+	// A mesma chave pode ser achada varias vezes (principalmente no modo aleatorio,
+	// que revisita o intervalo): mostra e conta cada chave so uma vez.
+	{
+		std::string seenKey = addr + ":" + k.GetBase16();
+		if (reportedKeys.count(seenKey)) {
+			return false;
+		}
+		reportedKeys.insert(seenKey);
 	}
 
 	output(addr, secp->GetPrivAddress(mode, k), k.GetBase16(), secp->GetPublicKeyHex(mode, p));
@@ -722,6 +733,10 @@ void VanitySearch::getGPUStartingKeys(Int& tRangeStart, Int& tRangeEnd, int grou
 	stepThread.Sub(&bc->ksStart);
 	stepThread.AddOne();
 	numthread.SetInt32(nbThread);
+	// Arredonda para cima: com passo truncado, as ultimas chaves de um intervalo
+	// que nao e multiplo do numero de threads ficariam sem ser varridas.
+	stepThread.Add(&numthread);
+	stepThread.SubOne();
 	stepThread.Div(&numthread);
 
 	Point Pdouble;
@@ -881,6 +896,8 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 	uint64_t keys_n = 0;
 	static uint64_t keys_n_prev = 0;
 	static double tprev = 0.0;
+	keys_n_prev = 0;   // reinicia entre janelas/retomadas, senao a velocidade
+	tprev = 0.0;       // da nova execucao sai zerada
 
 	// Global init
 	int thId = ph->threadId;
@@ -933,6 +950,9 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 	taskSize.AddOne();
 	numthread.SetInt32(numThreadsGPU);
 	stepThread.Set(&taskSize);
+	// Mesmo arredondamento para cima de getGPUStartingKeys()
+	stepThread.Add(&numthread);
+	stepThread.SubOne();
 	stepThread.Div(&numthread);
 
 	Int privkey;
@@ -1050,7 +1070,12 @@ void VanitySearch::FindKeyGPU(TH_PARAM* ph) {
 
 		
 
-		if (keycount.IsGreaterOrEqual(&taskSize) && (!randomMode))
+		// Fim: cada thread ja varreu o seu segmento inteiro (passo de cada thread)
+		Int doneStep;
+		doneStep.SetInt32(idxcount);
+		doneStep.Mult(STEP_SIZE);
+
+		if (doneStep.IsGreaterOrEqual(&stepThread) && (!randomMode))
 		{
 			double avg_speed = static_cast<double>(keys_n) / (ttot * 1000000.0); // Avg speed in MK/s
 			PainelBR::finished(avg_speed, nbFoundKey);
@@ -1087,7 +1112,8 @@ void VanitySearch::PrintStats(uint64_t keys_n, uint64_t keys_n_prev, double ttot
 	}
 
 	st.keysDone = keys_n;
-	st.taskSize = taskSize.ToDouble();
+	// Intervalo gigante (> 2^62 chaves): sem barra nem ETA, como o BitCrack-BR
+	st.taskSize = (taskSize.GetBitLength() > 62) ? 0.0 : taskSize.ToDouble();
 	st.runSec = ttot;
 	st.nFound = nbFoundKey;
 	st.nTargets = (int)inputAddresses.size();

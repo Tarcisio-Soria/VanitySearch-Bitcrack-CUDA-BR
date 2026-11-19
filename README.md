@@ -1,5 +1,10 @@
 # VanitySearch-Bitcrack-CUDA-BR
 
+> **Projeto derivado** do [VanitySearch](https://github.com/JeanLucPons/VanitySearch) de
+> **Jean-Luc Pons**, via [VanitySearch-Bitcrack](https://github.com/FixedPaul/VanitySearch-Bitcrack)
+> de **FixedPaul**. Não é um *fork* do GitHub: este repositório parte do histórico do projeto do
+> FixedPaul e acrescenta o trabalho descrito abaixo.
+
 Versão **BR (PT-BR)** do [VanitySearch-Bitcrack](https://github.com/FixedPaul/VanitySearch-Bitcrack)
 (de **FixedPaul**), ferramenta CUDA de busca de chaves privadas Bitcoin por faixa (estilo puzzle).
 Fork **educacional**, com o mesmo painel ao vivo, telemetria e idioma do

@@ -181,6 +181,7 @@ teste (um deles é a chave de teste `0x2400`). Os números variam conforme a GPU
 make                       # detecta compilador (g++ mais novo) e arquiteturas do CUDA instalado
 make CCBIN=g++-14          # força o compilador host
 make NVML=0                # sem telemetria NVML (não exige libnvidia-ml)
+make STATIC=1              # embute a runtime do CUDA e o libstdc++ (binário da Release)
 make clean
 ```
 

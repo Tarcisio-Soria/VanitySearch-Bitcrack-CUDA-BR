@@ -64,6 +64,11 @@ else
 CXXFLAGS   = -include cstdint -fno-strict-aliasing -mssse3 -Wno-write-strings -O2 -I. -I$(CUDA)/include
 endif
 LFLAGS     = -lpthread -L$(CUDA)/lib64 -lcudart
+# STATIC=1: runtime do CUDA e libstdc++/libgcc embutidas no binario (usado na Release);
+# so o driver NVIDIA (libnvidia-ml) e a glibc do sistema continuam dinamicos.
+ifeq ($(STATIC),1)
+LFLAGS     = -static-libstdc++ -static-libgcc -lpthread -L$(CUDA)/lib64 -lcudart_static -ldl -lrt
+endif
 ifeq ($(NVML),1)
 CXXFLAGS  += -DHAVE_NVML
 LFLAGS    += -L$(CUDA)/lib64/stubs -lnvidia-ml
